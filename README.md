@@ -27,7 +27,7 @@
 
 # License
 
-Magnes is licensed under **AGPL-3.0**. See [`LICENSE`](LICENSE) for details.
+Magnes is licensed under a custom non-commercial license. See [`LICENSE`](LICENSE) for details.
 
 # Credits
 - CodaFi for [CGSInternal](https://github.com/NUIKit/CGSInternal) (MIT)
