@@ -1,10 +1,3 @@
-//
-//  cursorhelper.c
-//  Magnes
-//
-//  Created by margooey on 6/2/25.
-//
-
 #include "CGSInternal/CGSConnection.h"
 #include "CGSInternal/CGSCursor.h"
 #include <ApplicationServices/ApplicationServices.h>

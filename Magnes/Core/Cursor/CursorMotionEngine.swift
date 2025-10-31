@@ -1,10 +1,3 @@
-//
-//  CursorMotionEngine.swift
-//  Magnes
-//
-//  Created by margooey on 11/24/24.
-//
-
 import AppKit
 import ApplicationServices
 import CoreGraphics

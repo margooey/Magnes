@@ -1,10 +1,3 @@
-//
-//  CursorUpdateLoop.swift
-//  Magnes
-//
-//  Created by margooey on 11/24/24.
-//
-
 import Foundation
 
 /// Encapsulates the high-frequency timer that drives cursor updates.

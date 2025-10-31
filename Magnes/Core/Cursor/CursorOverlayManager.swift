@@ -1,10 +1,3 @@
-//
-//  CursorOverlayManager.swift
-//  Magnes
-//
-//  Created by margooey on 11/24/24.
-//
-
 import AppKit
 
 /// Handles creation and teardown of the overlay window that hosts the custom cursor view and installs pointer tracking.

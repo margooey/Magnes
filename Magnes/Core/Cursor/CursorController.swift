@@ -1,10 +1,3 @@
-//
-//  CursorController.swift
-//  Magnes
-//
-//  Created by margooey on 10/25/25.
-//
-
 import AppKit
 import ApplicationServices
 import Foundation

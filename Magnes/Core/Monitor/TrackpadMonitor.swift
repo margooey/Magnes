@@ -1,10 +1,3 @@
-//
-//  TrackpadMonitor.swift
-//  Magnes
-//
-//  Created by margooey on 10/25/25.
-//
-
 import OpenMultitouchSupport
 import CoreGraphics
 import Foundation

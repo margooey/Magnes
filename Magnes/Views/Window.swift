@@ -1,10 +1,3 @@
-//
-//  OverlayWindow.swift
-//  Magnes
-//
-//  Created by margooey on 5/27/25.
-//
-
 import AppKit
 
 class OverlayWindow: NSWindow {

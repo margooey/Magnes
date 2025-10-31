@@ -1,10 +1,3 @@
-//
-//  MouseButtonMonitor.swift
-//  Magnes
-//
-//  Created by margooey on 11/24/24.
-//
-
 import AppKit
 
 /// Centralizes NSEvent monitor lifecycle and reports button state transitions to its caller.

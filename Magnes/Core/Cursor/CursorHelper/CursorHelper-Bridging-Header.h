@@ -1,10 +1,3 @@
-//
-//  CursorHelper-Bridging-Header.h
-//  Magnes
-//
-//  Created by margooey on 6/2/25.
-//
-
 #ifndef CursorHelper_Bridging_Header_h
 #define CursorHelper_Bridging_Header_h
 

@@ -1,10 +1,3 @@
-//
-//  CursorView.swift
-//  Magnes
-//
-//  Created by margooey on 5/27/25.
-//
-
 import AppKit
 import CoreGraphics
 import Foundation
@@ -97,7 +90,7 @@ class CursorView: NSView {
                    hints: [.interpolation: NSImageInterpolation.high])
     }
     
-    /// Draws the fill cursor by shading the target element with a gradient biased to the cursor position.
+    /// Draws the fill cursor by shading the target element with a gradient and then placing the pointer on top.
     private func drawFill() {
         if let frame = targetFrame {
             let flippedFrame = CGRect(
@@ -123,6 +116,7 @@ class CursorView: NSView {
                 gradient.draw(in: path, relativeCenterPosition: NSPoint(x: relX, y: relY))
             }
         }
+        drawPointer()
     }
 
     /// Renders a simple horizontal resize glyph (line + arrow heads).
@@ -199,9 +193,11 @@ class CursorView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         // TODO: Implement cursor brightness with CGDisplayCreateImage()
-        //NSColor.gray.withAlphaComponent(0.5).setFill()
+        NSColor.gray.withAlphaComponent(0.5).setFill()
 
         switch cursorMode {
+        case .fill:
+            drawFill()
         case .pointer:
             drawPointer()
         case .ibeam:
