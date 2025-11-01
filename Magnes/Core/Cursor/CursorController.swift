@@ -21,6 +21,8 @@ final class CursorController {
     private let motionEngine: CursorMotionEngine
     private let accessibilityInspector = AccessibilityInspector()
     private let appearanceResolver = CursorAppearanceResolver()
+    private let actionableAXActions: Set<String> = ["AXPress", "AXConfirm", "AXPick", "AXShowMenu"]
+    private let openSavePanelBundleID = "com.apple.appkit.xpc.openAndSavePanelService"
 
     private var lastUpdateTimestamp: CFTimeInterval = 0
     private var wasTouchingTrackpad = false
@@ -31,6 +33,11 @@ final class CursorController {
     private var isUpdateLoopRunning = false
     private var isTrackpadTouchActive = false
     private var processActivity: NSObjectProtocol?
+    private var lastInteractiveTarget: AccessibilityElementInfo?
+    private var lastInteractiveTargetTimestamp: CFTimeInterval = 0
+    private var lastInteractiveTargetQualifiesByRole = false
+    private var lastInteractiveTargetQualifiesByActionsOrURL = false
+    private var lastInteractiveTargetQualifiesImplicitly = false
 
     /// Inject the shared trackpad monitor; set up callbacks so state changes feed the controller.
     init(trackpadMonitor: TrackpadMonitor) {
@@ -151,14 +158,133 @@ final class CursorController {
         let cursorType = getCurrentCursorType()
         let position = motionEngine.position
         let elementInfo = accessibilityInspector.elementInfo(at: position)
+        let hasLink = elementInfo?.url != nil
+        let isOpenSavePanel = (elementInfo?.bundleIdentifier == openSavePanelBundleID) ||
+                              (elementInfo?.isFilePickerPanel ?? false)
 
         cursorView.mousePosition = position
-        cursorView.cursorMode = appearanceResolver.cursorMode(
+        let resolvedMode = appearanceResolver.cursorMode(
             for: cursorType,
-            elementRole: elementInfo?.role
+            elementRole: elementInfo?.role,
+            elementActionNames: elementInfo?.actionNames,
+            elementHasLink: hasLink,
+            elementFrame: elementInfo?.frame
         )
-        cursorView.targetFrame = elementInfo?.frame
+        cursorView.cursorMode = isOpenSavePanel ? .pointer : resolvedMode
+        cursorView.targetFrame = isOpenSavePanel ? nil : (elementInfo?.frame ?? lastInteractiveTarget?.frame)
         cursorView.needsDisplay = true
+
+        // Update magnetic target for elements that should attract cursor
+        updateMagneticTarget(elementInfo: elementInfo)
+    }
+
+    /// Updates the magnetic target based on the current element
+    private func updateMagneticTarget(elementInfo: AccessibilityElementInfo?) {
+        let now = CFAbsoluteTimeGetCurrent()
+        let pointerPosition = motionEngine.position
+
+        guard let info = elementInfo else {
+            maintainLastInteractiveTarget(now: now, pointerPosition: pointerPosition)
+            return
+        }
+
+        if info.bundleIdentifier == openSavePanelBundleID || info.isFilePickerPanel {
+            lastInteractiveTarget = nil
+            lastInteractiveTargetTimestamp = 0
+            lastInteractiveTargetQualifiesByRole = false
+            lastInteractiveTargetQualifiesByActionsOrURL = false
+            lastInteractiveTargetQualifiesImplicitly = false
+            motionEngine.updateMagneticTarget(nil)
+            return
+        }
+
+        let magneticRoles: Set<String> = [
+            kAXButtonRole,
+            kAXDockItemRole,
+            kAXTextFieldRole,
+            kAXTextAreaRole,
+            kAXComboBoxRole,
+            kAXCheckBoxRole,
+            kAXRadioButtonRole,
+            kAXPopUpButtonRole,
+            kAXMenuItemRole,
+            kAXMenuButtonRole,
+            kAXImageRole,
+            kAXGroupRole,
+            kAXToolbarRole,
+            "AXTab",
+            "AXLink",
+            "AXWebArea",
+        ]
+
+        let area = info.frame.width * info.frame.height
+        let hasPressAction = info.actionNames.contains(where: actionableAXActions.contains)
+        let hasLinkURL = info.url != nil
+        let role = info.role
+
+        // Debug logging - shows what roles and actions are detected
+        print("[Magnes] Element role: \(role ?? "nil"), actions: \(info.actionNames), url: \(info.url?.absoluteString ?? "nil"), area: \(Int(area))")
+
+        // Determine area ceilings per role to avoid latching to very large containers.
+        let baseMaxArea: CGFloat = 15000
+        var maxAreaForRole = baseMaxArea
+        switch role {
+        case "AXLink":
+            maxAreaForRole = baseMaxArea * 2.0
+        case kAXTextAreaRole:
+            maxAreaForRole = baseMaxArea * 0.8
+        case kAXGroupRole:
+            maxAreaForRole = baseMaxArea * 0.7
+        case kAXStaticTextRole:
+            maxAreaForRole = baseMaxArea * 0.9
+        default:
+            break
+        }
+
+        let qualifiesByRole = role.map { magneticRoles.contains($0) } ?? false
+        let qualifiesByActionsOrURL = hasPressAction || hasLinkURL
+        let qualifiesImplicitly = (role == nil) && qualifiesByActionsOrURL && area > 100 && area <= baseMaxArea
+
+        let isCandidate = ((qualifiesByRole || qualifiesByActionsOrURL) && area <= maxAreaForRole) || qualifiesImplicitly
+
+        if isCandidate {
+            motionEngine.updateMagneticTarget(info.frame)
+            lastInteractiveTarget = info
+            lastInteractiveTargetTimestamp = now
+            lastInteractiveTargetQualifiesByRole = qualifiesByRole
+            lastInteractiveTargetQualifiesByActionsOrURL = qualifiesByActionsOrURL
+            lastInteractiveTargetQualifiesImplicitly = qualifiesImplicitly
+            return
+        }
+
+        maintainLastInteractiveTarget(now: now, pointerPosition: pointerPosition)
+    }
+
+    /// Keeps the previous interactive target alive briefly to smooth out AX element flicker.
+    private func maintainLastInteractiveTarget(now: CFTimeInterval, pointerPosition: CGPoint) {
+        let lingerDuration: CFTimeInterval = 0.06
+        guard let lastTarget = lastInteractiveTarget else {
+            motionEngine.updateMagneticTarget(nil)
+            return
+        }
+
+        let elapsed = now - lastInteractiveTargetTimestamp
+        let expandedFrame = lastTarget.frame.insetBy(dx: -12, dy: -12)
+
+        let stillInteractive = lastInteractiveTargetQualifiesByRole ||
+            lastInteractiveTargetQualifiesByActionsOrURL ||
+            lastInteractiveTargetQualifiesImplicitly
+
+        if elapsed <= lingerDuration && expandedFrame.contains(pointerPosition) && stillInteractive {
+            motionEngine.updateMagneticTarget(lastTarget.frame)
+        } else {
+            lastInteractiveTarget = nil
+            lastInteractiveTargetTimestamp = 0
+            lastInteractiveTargetQualifiesByRole = false
+            lastInteractiveTargetQualifiesByActionsOrURL = false
+            lastInteractiveTargetQualifiesImplicitly = false
+            motionEngine.updateMagneticTarget(nil)
+        }
     }
 
     /// Propagate pressed-state changes to the overlay view.
