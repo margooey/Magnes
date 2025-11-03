@@ -206,8 +206,15 @@ class CursorView: NSView {
             drawPointer()
         case .ibeam:
             drawIBeam()
-        default:
+        case .fill:
+            drawFill()
             drawPointer()
+        case .horizontalResize:
+            drawHorizontalResize()
+        case .verticalResize:
+            drawVerticalResize()
+        case .diagonalResize:
+            drawDiagonalResize()
         }
     }
 }
