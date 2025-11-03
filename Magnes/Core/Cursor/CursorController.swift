@@ -86,10 +86,14 @@ final class CursorController {
         handleCursorTick()
         isTrackpadTouchActive = trackpadMonitor.isTrackpadTouching()
         refreshUpdateLoopState()
+        isRunning = true
+        notifyStateChange()
     }
 
     /// Halt timers and release overlay resources.
     func stop() {
+        guard isRunning else { return }
+        
         if isUpdateLoopRunning {
             updateLoop.stop()
             isUpdateLoopRunning = false
@@ -99,6 +103,8 @@ final class CursorController {
         wasTouchingTrackpad = false
         isTrackpadTouchActive = false
         setProcessActivityActive(false)
+        isRunning = false
+        notifyStateChange()
     }
 
     /// Wire the button monitor so press/release events feed the pointer animation.
@@ -360,5 +366,11 @@ final class CursorController {
 
     @objc private func handleScreenParametersChanged(_ notification: Notification) {
         updateDesktopBounds()
+    }
+    
+    private func notifyStateChange() {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .cursorEngineStateDidChange, object: nil)
+        }
     }
 }

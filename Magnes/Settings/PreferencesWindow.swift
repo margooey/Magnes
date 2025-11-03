@@ -122,7 +122,7 @@ private final class PreferencesViewController: NSViewController {
 }
 
 extension Notification.Name {
-    static let settingsDidChange = Notification.Name("com.example.iPadCursor.settingsDidChange")
-    static let cursorEngineStateDidChange = Notification.Name("com.example.iPadCursor.cursorEngineStateDidChange")
+    static let settingsDidChange = Notification.Name("com.margooey.Magnes.settingsDidChange")
+    static let cursorEngineStateDidChange = Notification.Name("com.margooey.Magnes.cursorEngineStateDidChange")
 }
 
