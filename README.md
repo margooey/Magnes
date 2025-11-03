@@ -30,5 +30,6 @@
 Magnes is licensed under a custom non-commercial license. See [`LICENSE`](LICENSE) for details.
 
 # Credits
+- Joaov41 for [ipad_cursor](https://github.com/Joaov41/ipad_cursor/) and collaboration on the project
 - CodaFi for [CGSInternal](https://github.com/NUIKit/CGSInternal) (MIT)
 - Nick Bolton for the function that hides the default cursor

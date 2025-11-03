@@ -15,10 +15,11 @@ import Foundation
 /// - Delegates pointer motion math to `CursorMotionEngine`.
 /// - Keeps `CursorView` up to date with position, mode, and press state.
 final class CursorController {
-    private let trackpadMonitor: TrackpadMonitor
+    static let shared = CursorController()
+    
+    private let trackpadMonitor = TrackpadMonitor()
     private let overlayManager = CursorOverlayManager()
     private let mouseButtonMonitor = MouseButtonMonitor()
-    private let motionEngine: CursorMotionEngine
     private let accessibilityInspector = AccessibilityInspector()
     private let appearanceResolver = CursorAppearanceResolver()
     private let actionableAXActions: Set<String> = ["AXPress", "AXConfirm", "AXPick", "AXShowMenu"]
@@ -30,6 +31,7 @@ final class CursorController {
     private lazy var updateLoop = CursorUpdateLoop(frequency: 500.0) { [weak self] in
         self?.handleCursorTick()
     }
+    private lazy var motionEngine = CursorMotionEngine(enableGlideLogging: enableGlideLogging)
     private var isUpdateLoopRunning = false
     private var isTrackpadTouchActive = false
     private var processActivity: NSObjectProtocol?
@@ -38,31 +40,11 @@ final class CursorController {
     private var lastInteractiveTargetQualifiesByRole = false
     private var lastInteractiveTargetQualifiesByActionsOrURL = false
     private var lastInteractiveTargetQualifiesImplicitly = false
+    
+    private(set) var isRunning = false
 
     /// Inject the shared trackpad monitor; set up callbacks so state changes feed the controller.
-    init(trackpadMonitor: TrackpadMonitor) {
-        self.trackpadMonitor = trackpadMonitor
-        self.motionEngine = CursorMotionEngine(enableGlideLogging: enableGlideLogging)
-
-        motionEngine.onLogMessage = { [weak self] message in
-            self?.logGlide(message)
-        }
-
-        motionEngine.onGlideStateChange = { [weak self] isGliding in
-            self?.handleGlideStateChange(isGliding: isGliding)
-        }
-
-        trackpadMonitor.onTouchStateChange = { [weak self] touching in
-            self?.handleTrackpadTouchChange(isTouching: touching)
-        }
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleScreenParametersChanged(_:)),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
-    }
+    private init() {}
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -75,6 +57,27 @@ final class CursorController {
 
     /// Boot the overlay, establish bounds, and prime the state machine.
     func start() {
+        guard !isRunning else { return }
+        
+        motionEngine.onLogMessage = { [weak self] message in
+            self?.logGlide(message)
+        }
+        
+        motionEngine.onGlideStateChange = { [weak self] isGliding in
+            self?.handleGlideStateChange(isGliding: isGliding)
+        }
+        
+        trackpadMonitor.onTouchStateChange = { [weak self] touching in
+            self?.handleTrackpadTouchChange(isTouching: touching)
+        }
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleScreenParametersChanged(_:)),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+            
         trackpadMonitor.startMonitoring()
         updateDesktopBounds()
         _ = overlayManager.ensureOverlay()
