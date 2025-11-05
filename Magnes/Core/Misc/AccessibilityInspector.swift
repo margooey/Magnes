@@ -17,6 +17,7 @@ struct AccessibilityElementInfo {
     let actionNames: [String]
     let url: URL?
     let bundleIdentifier: String?
+    let processIdentifier: pid_t?
     let isFilePickerPanel: Bool
 }
 
@@ -33,6 +34,7 @@ final class AccessibilityInspector {
         let actions = extractActionNames(from: element)
         let url = extractURL(from: element)
         let bundleIdentifier = applicationBundleIdentifier(for: element)
+        let pid = applicationPID(for: element)
         let isFilePickerPanel = detectOpenSavePanel(for: element)
 
         return AccessibilityElementInfo(
@@ -41,8 +43,27 @@ final class AccessibilityInspector {
             actionNames: actions,
             url: url,
             bundleIdentifier: bundleIdentifier,
+            processIdentifier: pid,
             isFilePickerPanel: isFilePickerPanel
         )
+    }
+
+    /// Attempts to derive the owning process identifier for the element.
+    private func applicationPID(for element: AXUIElement, depth: Int = 0) -> pid_t? {
+        var pid: pid_t = 0
+        if AXUIElementGetPid(element, &pid) == .success {
+            return pid
+        }
+        guard depth < 6, let parent = parent(of: element) else { return nil }
+        return applicationPID(for: parent, depth: depth + 1)
+    }
+
+    /// Determines whether the element at the given coordinate belongs to a file picker panel.
+    func isFilePickerPanel(at screenPoint: CGPoint) -> Bool {
+        guard let element = element(at: screenPoint) else {
+            return false
+        }
+        return detectOpenSavePanel(for: element)
     }
 
     /// Finds the accessibility element at a point (converted to bottom-left origin used by AX).

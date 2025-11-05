@@ -184,11 +184,22 @@ int hideCursor(void) {
     /// The above only works on earlier versions of macOS, the below is required now. I have no idea why.
     CGEventSourceRef eventSourceRef = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
     CGEventSourceSetLocalEventsSuppressionInterval(eventSourceRef, 0);
-    free(eventSourceRef);
+    if (eventSourceRef) CFRelease(eventSourceRef);
     return 0;
 }
 
 /// Function for preventing the dock from messing with the cursor. Calling more than once flips the flag regardless of boolean value weirdly
 void notTodayDock(void) {
     CGSSetDockCursorOverride(_CGSDefaultConnection(), true);
+}
+
+int showCursor(void) {
+    CGError error = CGDisplayShowCursor(kCGDirectMainDisplay);
+    if (error != kCGErrorSuccess) {
+        fprintf(stderr, "[Error] CGDisplayShowCursor failed (error = %d)\n", error);
+    }
+    CGEventSourceRef eventSourceRef = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
+    CGEventSourceSetLocalEventsSuppressionInterval(eventSourceRef, 0);
+    if (eventSourceRef) CFRelease(eventSourceRef);
+    return 0;
 }

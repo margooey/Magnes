@@ -20,6 +20,7 @@ typedef enum {
 
 CursorType getCurrentCursorType(void);
 int hideCursor(void);
+int showCursor(void);
 void notTodayDock(void);
 
 #endif /* CursorHelper_Bridging_Header_h */
