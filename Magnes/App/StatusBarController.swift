@@ -8,11 +8,6 @@ final class StatusBarController {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let cursorController = CursorController.shared
     private let preferencesWindowController = PreferencesWindowController()
-    private lazy var toggleMenuItem: NSMenuItem = {
-        let item = NSMenuItem(title: "Enable Magnes", action: #selector(toggleCursorControl(_:)), keyEquivalent: "")
-        item.target = self
-        return item
-    }()
     private lazy var controlPanelMenuItem: NSMenuItem = {
         let item = NSMenuItem(title: "Control Panel…", action: #selector(showControlPanel(_:)), keyEquivalent: "")
         item.target = self
@@ -34,14 +29,6 @@ final class StatusBarController {
         }
 
         statusItem.menu = buildMenu()
-        syncToggleState()
-        stateObserver = NotificationCenter.default.addObserver(
-            forName: .cursorEngineStateDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            self?.syncToggleState()
-        }
         NSLog("StatusBarController: status item installed")
     }
 
@@ -52,15 +39,6 @@ final class StatusBarController {
             stateObserver = nil
         }
         NSStatusBar.system.removeStatusItem(statusItem)
-    }
-
-    @objc private func toggleCursorControl(_ sender: Any?) {
-        if cursorController.isRunning {
-            cursorController.stop()
-        } else {
-            cursorController.start()
-        }
-        syncToggleState()
     }
 
     @objc private func showPreferences(_ sender: Any?) {
@@ -77,8 +55,6 @@ final class StatusBarController {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
-
-        menu.addItem(toggleMenuItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -97,11 +73,6 @@ final class StatusBarController {
         menu.addItem(quitItem)
 
         return menu
-    }
-
-    private func syncToggleState() {
-        toggleMenuItem.state = cursorController.isRunning ? .on : .off
-        toggleMenuItem.title = cursorController.isRunning ? "Disable Magnes" : "Enable Magnes"
     }
 }
 
