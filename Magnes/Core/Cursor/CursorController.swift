@@ -22,6 +22,7 @@ final class CursorController {
     private let mouseButtonMonitor = MouseButtonMonitor()
     private let accessibilityInspector = AccessibilityInspector()
     private let appearanceResolver = CursorAppearanceResolver()
+    private let settings = SettingsManager.shared
     private let actionableAXActions: Set<String> = ["AXPress", "AXConfirm", "AXPick", "AXShowMenu"]
     private let openSavePanelBundleID = "com.apple.appkit.xpc.openAndSavePanelService"
 
@@ -180,7 +181,8 @@ final class CursorController {
             elementFrame: elementInfo?.frame
         )
         cursorView.cursorMode = isOpenSavePanel ? .pointer : resolvedMode
-        cursorView.targetFrame = isOpenSavePanel ? nil : (elementInfo?.frame ?? lastInteractiveTarget?.frame)
+        let shouldShowHover = settings.hoverEffectsEnabled && !isOpenSavePanel
+        cursorView.targetFrame = shouldShowHover ? (elementInfo?.frame ?? lastInteractiveTarget?.frame) : nil
         cursorView.needsDisplay = true
 
         // Update magnetic target for elements that should attract cursor

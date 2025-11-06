@@ -15,6 +15,9 @@ import CoreGraphics
 /// - Uses exponential decay to simulate friction during glide.
 /// - Scales normalized trackpad velocity by desktop bounds to obtain pixel velocity.
 final class CursorMotionEngine {
+    var isMagnetismEnabled: Bool = true
+    private let settings = SettingsManager.shared
+    
     enum VelocitySource: String {
         case pointer
         case trackpad
@@ -89,6 +92,15 @@ final class CursorMotionEngine {
     /// Updates the current magnetic target element (if any)
     /// Implements hysteresis to prevent rapid switching between nearby targets
     func updateMagneticTarget(_ targetFrame: CGRect?) {
+        guard settings.magneticSnappingEnabled else {
+            currentMagneticTarget = nil
+            lockedMagneticTarget = nil
+            isLockedToTarget = false
+            pendingSwitchTarget = nil
+            pendingSwitchConfidence = 0
+            return
+        }
+
         // If no new target, clear everything
         guard let newTarget = targetFrame else {
             currentMagneticTarget = nil
@@ -338,6 +350,7 @@ final class CursorMotionEngine {
     /// Applies magnetic attraction to nearby interactive elements
     /// Based on iPadOS pointer magnetism behavior with lock-on to prevent jittering
     private func applyMagnetism() {
+        guard settings.magneticSnappingEnabled else { return }
         guard let targetFrame = currentMagneticTarget else {
             // No target - unlock if we were locked
             if isLockedToTarget {

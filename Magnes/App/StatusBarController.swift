@@ -30,6 +30,7 @@ final class StatusBarController {
 
         statusItem.menu = buildMenu()
         NSLog("StatusBarController: status item installed")
+        cursorController.start()
     }
 
     func tearDown() {
