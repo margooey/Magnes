@@ -184,7 +184,7 @@ int hideCursor(void) {
     /// The above only works on earlier versions of macOS, the below is required now. I have no idea why.
     CGEventSourceRef eventSourceRef = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
     CGEventSourceSetLocalEventsSuppressionInterval(eventSourceRef, 0);
-    free(eventSourceRef);
+    CFRelease(eventSourceRef);
     return 0;
 }
 
